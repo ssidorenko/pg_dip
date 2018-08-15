@@ -18,8 +18,18 @@ from utils.denoising_utils import get_noisy_image, predict_method_noise_std
 from models.skip_network import SkipNetwork
 
 
-def denoise(fname, plot=True):
-    """Add AWGN with sigma=25 to the image given as fname and denoise it."""
+def denoise(fname, plot=True, stopping_mode="AMNS"):
+    """Add AWGN with sigma=25 to the given image and denoise it.
+
+    Args:
+        fname: Path to the image.
+        mode: Stopping mode to use. either "AMNS", "SMNS", or "static".
+
+    Returns:
+        A tuple with the denoised image in numpy format as the first element,
+        and a history of the PSNR in the second element.
+
+    """
     start_time = datetime.now()
     dtype = torch.cuda.FloatTensor
 
@@ -235,3 +245,36 @@ def denoise(fname, plot=True):
                 optimizer.step()
     print("finished, time: {}".format(datetime.now() - start_time))
     return out_avg, psnr_history
+
+if __name__ == "__main__":
+    stopping_mode = "AMNS"
+    if len(sys.argv) > 1:
+        stopping_mode = sys.argv[1]
+
+    IMAGES = ["data/denoising/" + image for image in [
+        'house.png',
+        'F16.png',
+        'lena.png',
+        'baboon.png',
+        'kodim03.png',
+        'kodim01.png',
+        'peppers.png',
+        'kodim02.png',
+        'kodim12.png'
+    ]]
+
+    psnrs = []
+
+    for fname in self.IMAGES:
+
+        img_np = pil_to_np(crop_image(get_image(fname, -1)[0], d=32))
+
+        run1, _  = var_to_np(denoise(fname, plot, stopping_mode)[0])
+        run2, _  = var_to_np(denoise(fname, plot, stopping_mode)[0])
+
+        psnr1, psnr2, psnr_avg = [compare_psnr(i, img_np) for i in [run1, run2, 0.5 * (run1 + run2)]]
+
+        print("Run 1: {}\nRun 2: {}\n PSNR of Average: {}".format(psnr1, psnr2, psnr_avg))
+        psnrs.append(psnr_avg)
+
+    print("Average PSNR over test set: {}".format(np.mean(psnrs)))
