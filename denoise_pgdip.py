@@ -1,5 +1,6 @@
 from datetime import datetime
 import os
+import sys
 
 import matplotlib.pyplot as plt
 from IPython.display import clear_output
@@ -18,7 +19,7 @@ from utils.denoising_utils import get_noisy_image, predict_method_noise_std
 from models.skip_network import SkipNetwork
 
 
-def denoise(fname, plot=True, stopping_mode="AMNS"):
+def denoise(fname, plot=False, stopping_mode="AMNS"):
     """Add AWGN with sigma=25 to the given image and denoise it.
 
     Args:
@@ -76,11 +77,18 @@ def denoise(fname, plot=True, stopping_mode="AMNS"):
         return sigma/(60*25)+1/60
 
     reg_noise_std = get_reg_noise_std(sigma)
-    target_method_noise_std = predict_method_noise_std(orig_img_noisy_np, sigma/255) * 255
+    if stopping_mode == "AMNS":
+        target_method_noise_std = predict_method_noise_std(orig_img_noisy_np, sigma/255) * 255
+    elif stopping_mode == "SMNS":
+        target_method_noise_std = 24.45
+    elif stopping_mode is None:
+        target_method_noise_std = -1
+
     print("Target method noise: {:.4f}".format(target_method_noise_std))
 
 
     def get_phase_duration(level, phase):
+        return 2
         if level <= MAX_LEVEL - 1:
             if phase == 'trans':
                 return 70
@@ -90,7 +98,10 @@ def denoise(fname, plot=True, stopping_mode="AMNS"):
             if phase == 'trans':
                 return 100
             elif phase == 'stab':
-                return 2000 # tmp for computing method noise
+                # Use a fixed number of iterations when no stopping_mode
+                # otherwise use arbitrarily large number such that early stopping
+                # kicks in before it is reached.
+                return 650 if stopping_mode is None else 2000000
 
 
     net = SkipNetwork(
@@ -115,7 +126,7 @@ def denoise(fname, plot=True, stopping_mode="AMNS"):
 
     def closure(i, j, max_iter, cur_level, phase, image_target):
         """Innermost loop of the optimization procedure."""
-        nonlocal out_avg, last_net, psrn_noisy_last, psnr_history, overfit_counter
+        nonlocal out_avg, psrn_noisy_last, psnr_history, overfit_counter
 
         # note: j and max_iter are relative to the current phase
         # i counts the total number of iterations since the beginning of execution
@@ -265,12 +276,12 @@ if __name__ == "__main__":
 
     psnrs = []
 
-    for fname in self.IMAGES:
+    for fname in IMAGES:
 
         img_np = pil_to_np(crop_image(get_image(fname, -1)[0], d=32))
 
-        run1, _  = var_to_np(denoise(fname, plot, stopping_mode)[0])
-        run2, _  = var_to_np(denoise(fname, plot, stopping_mode)[0])
+        run1 = var_to_np(denoise(fname, False, stopping_mode)[0])
+        run2 = var_to_np(denoise(fname, False, stopping_mode)[0])
 
         psnr1, psnr2, psnr_avg = [compare_psnr(i, img_np) for i in [run1, run2, 0.5 * (run1 + run2)]]
 

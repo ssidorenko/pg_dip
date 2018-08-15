@@ -193,7 +193,7 @@ class SkipNetwork(nn.Module):
         # Add an upsample layer to match the output resolution of the next block
         prev_torgb_block.add_module(
             'low_resl_upsample',
-            nn.Upsample(scale_factor=2, mode='nearest', align_corners=True),
+            nn.Upsample(scale_factor=2, mode=self.config.upsample_mode, align_corners=True),
         )
 
         # Build a new convolutional layer
@@ -273,7 +273,7 @@ class SkipNetwork(nn.Module):
         """Returns a convolutional layer for the generator"""
         conv_block = Sequential()
         # Upsample layer: doubles resolution, keep same number of channels
-        conv_block.add(nn.Upsample(scale_factor=2, mode=self.config.upsample_mode))
+        conv_block.add(nn.Upsample(scale_factor=2, mode=self.config.upsample_mode, align_corners=True))
         conv_block.add(norm(ndim_in, norm_fun=self.config.norm_fun))
 
         conv_block.add(conv(ndim_in,
