@@ -99,7 +99,7 @@ def denoise(fname, plot=False, stopping_mode="AMNS"):
     overfit_counter = -75
 
     def closure():
-        nonlocal i, out_avg, psrn_noisy_last, last_net, psnr_history, ofc, max_out, max_psnr
+        nonlocal i, out_avg, psrn_noisy_last, last_net, psnr_history, overfit_counter, max_out, max_psnr
 
         if reg_noise_std > 0:
             net_input = net_input_saved + (noise.normal_() * reg_noise_std)
@@ -182,8 +182,8 @@ if __name__ == "__main__":
 
         img_np = pil_to_np(crop_image(get_image(fname, -1)[0], d=32))
 
-        run1 = var_to_np(denoise(fname, plot, stopping_mode)[0])
-        run2 = var_to_np(denoise(fname, plot, stopping_mode)[0])
+        run1 = var_to_np(denoise(fname, False, stopping_mode)[0])
+        run2 = var_to_np(denoise(fname, False, stopping_mode)[0])
 
         psnr1, psnr2, psnr_avg = [compare_psnr(i, img_np) for i in [run1, run2, 0.5 * (run1 + run2)]]
 
