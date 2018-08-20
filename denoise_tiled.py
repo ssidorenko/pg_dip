@@ -278,8 +278,8 @@ if __name__ == "__main__":
 
         img_np = pil_to_np(crop_image(get_image(fname, -1)[0], d=32))
 
-        run1 = denoise(fname, False, stopping_mode)[0]
-        run2 = denoise(fname, False, stopping_mode)[0]
+        run1 = denoise(fname, False, stopping_mode)
+        run2 = denoise(fname, False, stopping_mode)
 
         psnr1, psnr2, psnr_avg = [compare_psnr(i, img_np) for i in [run1, run2, 0.5 * (run1 + run2)]]
 
